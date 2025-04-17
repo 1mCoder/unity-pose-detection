@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Components
+namespace Assets.Scripts.Components
 {
     public sealed class WebCameraComponent : MonoBehaviour
     {
