@@ -160,12 +160,18 @@ MonoBehaviour:
   webcamFPS: 60
   posenetShader: {fileID: 7200000, guid: 399531f0e039f40788c18390d6ee3fb7, type: 3}
   modelType: 1
-  useGPU: 1
+  useGPU: 0
   imageDims: {x: 256, y: 256}
-  estimationType: 0
+  estimationType: 1
   mobileNetModelAsset: {fileID: 5022602860645237092, guid: 7565a5f00b1dd4924bb085a7192ded11, type: 3}
   resnetModelAsset: {fileID: 5022602860645237092, guid: dae82f140f037487384a6cab2c391dbe, type: 3}
   workerType: 32768
+  maxPoses: 20
+  scoreThreshold: 0.8
+  nmsRadius: 100
+  pointScale: 10
+  lineWidth: 5
+  minConfidence: 90
 --- !u!4 &283031148
 Transform:
   m_ObjectHideFlags: 0

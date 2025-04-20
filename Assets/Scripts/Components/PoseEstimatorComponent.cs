@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Video;
 using Unity.Barracuda;
 using Assets.Scripts.Common;
+using Unity.Mathematics;
 
 namespace Assets.Scripts.Components
 {
@@ -28,6 +29,16 @@ namespace Assets.Scripts.Components
         [SerializeField]                         private NNModel            resnetModelAsset;
         [SerializeField]                         private WorkerFactory.Type workerType = WorkerFactory.Type.Auto;
 
+        [Header("Multi-pose Estimation Settings")]
+        [SerializeField, Tooltip("The maximum number of posees to estimate"), Range(1, 20)]       private int   maxPoses = 20;
+        [SerializeField, Tooltip("The score threshold for multipose estimation"), Range(0, 1.0f)] private float scoreThreshold = 0.25F;
+        [SerializeField, Tooltip("Non-maximum suppression part distance")]                        private int   nmsRadius = 100;
+
+        [Header("Pose Skeleton Settings")]
+        [SerializeField, Tooltip("The size of the pose skeleton key points")]                                      private float pointScale = 10F;
+        [SerializeField, Tooltip("The width of the pose skeleton lines")]                                          private float lineWidth = 5F;
+        [SerializeField, Tooltip("The minimum confidence level required to display the key point"), Range(0, 100)] private int   minConfidence = 70;
+
         private WebCamTexture _webcamTexture;
         private Vector2Int    _videoDims;
         private RenderTexture _videoTexture;
@@ -36,6 +47,7 @@ namespace Assets.Scripts.Components
         private float           _aspectRatioScale;
         private RenderTexture   _rTex;
         private Action<float[]> _preprocessAction;
+        private string          _preprocessActionName;
         private Tensor          _input;
 
         private Engine _engine;
@@ -45,7 +57,8 @@ namespace Assets.Scripts.Components
         private string _displacementBWDLayer;
         private string _predictionLayer = "heatmap_predictions";
 
-        private Keypoint[][] _poses;
+        private Keypoint[][]   _poses;
+        private PoseSkeleton[] _skeletons;
 
         /*
          * MonoBehaviour
@@ -81,6 +94,7 @@ namespace Assets.Scripts.Components
             _rTex = RenderTexture.GetTemporary(imageDims.x, imageDims.y, 24, RenderTextureFormat.ARGBHalf);
 
             InitializeBarracuda();
+            InitializeSkeletons();
         }
 
         private void OnDestroy()
@@ -145,6 +159,32 @@ namespace Assets.Scripts.Components
 
             // Decode the keypoint coordinates from the model output
             ProcessOutput(_engine.worker);
+
+            if (maxPoses != _skeletons.Length)
+            {
+                foreach (PoseSkeleton skeleton in _skeletons)
+                    skeleton.Cleanup();
+
+                InitializeSkeletons();
+            }
+
+            var minDimension = Mathf.Min(_videoTexture.width, _videoTexture.height);
+            var scale = (float)minDimension / Mathf.Min(imageDims.x, imageDims.y);
+
+            for (int i = 0; i < _skeletons.Length; i++)
+            {
+                if (i <= _poses.Length - 1)
+                {
+                    _skeletons[i].ToggleSkeleton(true);
+
+                    _skeletons[i].UpdateKeyPointPositions(_poses[i], scale, _videoTexture, useWebcam, minConfidence);
+                    _skeletons[i].UpdateLines();
+                }
+                else
+                {
+                    _skeletons[i].ToggleSkeleton(false);
+                }
+            }
         }
  
         /*
@@ -183,6 +223,7 @@ namespace Assets.Scripts.Components
             if (modelType == ModelType.MobileNet)
             {
                 _preprocessAction = Utils.Utils.PreprocessMobileNet;
+                _preprocessActionName = "PreprocessMobileNet";
                 runtimeModel = ModelLoader.Load(mobileNetModelAsset);
                 _displacementFWDLayer = runtimeModel.outputs[2];
                 _displacementBWDLayer = runtimeModel.outputs[3];
@@ -190,6 +231,7 @@ namespace Assets.Scripts.Components
             else
             {
                 _preprocessAction = Utils.Utils.PreprocessResNet;
+                _preprocessActionName = "PreprocessResNet";
                 runtimeModel = ModelLoader.Load(resnetModelAsset);
                 _displacementFWDLayer = runtimeModel.outputs[3];
                 _displacementBWDLayer = runtimeModel.outputs[2];
@@ -210,11 +252,24 @@ namespace Assets.Scripts.Components
             _engine = new Engine(workerType, modelBuilder.model, modelType);
         }
 
+        private void InitializeSkeletons()
+        {
+            // Initialize the list of pose skeletons
+            if (estimationType == EstimationType.SinglePose)
+                maxPoses = 1;
+
+            _skeletons = new PoseSkeleton[maxPoses];
+
+            // Populate the list of pose skeletons
+            for (int i = 0; i < maxPoses; i++)
+                _skeletons[i] = new PoseSkeleton(pointScale, lineWidth);
+        }
+
         private void ProcessImage(RenderTexture image)
         {
             if (useGPU)
             {
-                ProcessImageGPU(image, _preprocessAction.Method.Name);
+                ProcessImageGPU(image, _preprocessActionName);
                 _input = new Tensor(image, channels: 3);
             }
             else
@@ -250,7 +305,6 @@ namespace Assets.Scripts.Components
         /// <summary>
         /// Obtains the model output and either decodes single or mutlple poses
         /// </summary>
-        /// <param name="engine"></param>
         private void ProcessOutput(IWorker engine)
         {
             // Get the model output
@@ -265,17 +319,18 @@ namespace Assets.Scripts.Components
 
             if (estimationType == EstimationType.SinglePose)
             {
-                // Initialize the array of Keypoint arrays
                 _poses = new Keypoint[1][];
-
-                // Determine the key point locations
                 _poses[0] = Utils.Utils.DecodeSinglePose(heatmaps, offsets, stride);
+            }
+            else if (estimationType == EstimationType.MultiPose)
+            {
+                _poses = Utils.Utils.DecodeMultiplePoses(heatmaps, offsets, displacementFWD, displacementBWD, stride, maxPoses, scoreThreshold, nmsRadius);
             }
             else
             {
-                
+                throw new Exception("Invalid estimation type");
             }
-            
+
             // Release the resources allocated for the output Tensors
             heatmaps.Dispose();
             offsets.Dispose();
