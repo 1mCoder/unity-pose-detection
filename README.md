@@ -20,12 +20,12 @@ Two sources of input are supported: webcamera and a video file. Briefly, there a
 
 ### Results
 Human pose estimations by **MobileNet**:
-https://github.com/1mCoder/unity-pose-detection/blob/main/Results/mobilenet_single_pose.png
-https://github.com/1mCoder/unity-pose-detection/blob/main/Results/mobilenet_multi_pose.png
+![mobilenet multipose](https://github.com/user-attachments/assets/4b76c408-7ecf-498d-98e9-99f8c2eb89b5)
+![mobilenet singlepose](https://github.com/user-attachments/assets/0449f3e9-d8db-4c6a-b3ee-1f38c98c010b)
 
 Human pose estimations by **ResNet50**:
-https://github.com/1mCoder/unity-pose-detection/blob/main/Results/resnet50_single_pose.png
-https://github.com/1mCoder/unity-pose-detection/blob/main/Results/resnet50_multi_pose.png
+![resnet singlepose](https://github.com/user-attachments/assets/69ad473f-9797-4d0d-b135-45f28ab26477)
+![resnet multipose](https://github.com/user-attachments/assets/e3d3322a-df5e-4a78-b9a0-da51e600a595)
 
 ### Final Thoughts
 This project was really fun. The most interesting part was to explore how Unity game engine supports machine learning and provides ways to use models with specific libraries. It is fascinating.
