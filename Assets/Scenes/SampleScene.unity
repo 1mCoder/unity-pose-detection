@@ -155,9 +155,16 @@ MonoBehaviour:
   videoPlayer: {fileID: 1730312286}
   videoRenderer: {fileID: 1730312288}
   mainCamera: {fileID: 519420031}
-  useWebcam: 1
+  useWebcam: 0
   webcamDims: {x: 1280, y: 720}
   webcamFPS: 60
+  posenetShader: {fileID: 7200000, guid: 399531f0e039f40788c18390d6ee3fb7, type: 3}
+  modelType: 1
+  useGPU: 1
+  imageDims: {x: 256, y: 256}
+  mobileNetModelAsset: {fileID: 5022602860645237092, guid: 7565a5f00b1dd4924bb085a7192ded11, type: 3}
+  resnetModelAsset: {fileID: 5022602860645237092, guid: dae82f140f037487384a6cab2c391dbe, type: 3}
+  workerType: 32768
 --- !u!4 &283031148
 Transform:
   m_ObjectHideFlags: 0
