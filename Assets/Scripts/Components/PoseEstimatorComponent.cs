@@ -1,8 +1,8 @@
+using System;
 using UnityEngine;
 using UnityEngine.Video;
 using Unity.Barracuda;
 using Assets.Scripts.Common;
-using System;
 
 namespace Assets.Scripts.Components
 {
@@ -18,10 +18,11 @@ namespace Assets.Scripts.Components
         [SerializeField]                   private Vector2Int webcamDims = new(1280, 720);
         [SerializeField]                   private int        webcamFPS  = 60;
 
-        [SerializeField, Header("Model Settings")] private ComputeShader posenetShader;
-        [SerializeField]                           private ModelType     modelType = ModelType.ResNet50;
-        [SerializeField]                           private bool          useGPU    = true;
-        [SerializeField]                           private Vector2Int    imageDims = new (256, 256);
+        [SerializeField, Header("Model Settings")] private ComputeShader  posenetShader;
+        [SerializeField]                           private ModelType      modelType      = ModelType.ResNet50;
+        [SerializeField]                           private bool           useGPU         = true;
+        [SerializeField]                           private Vector2Int     imageDims      = new (256, 256);
+        [SerializeField]                           private EstimationType estimationType = EstimationType.SinglePose;
 
         [SerializeField, Header("Model Assets")] private NNModel            mobileNetModelAsset;
         [SerializeField]                         private NNModel            resnetModelAsset;
@@ -37,13 +38,15 @@ namespace Assets.Scripts.Components
         private Action<float[]> _preprocessAction;
         private Tensor          _input;
 
-
         private Engine _engine;
         private string _heatmapLayer;
         private string _offsetsLayer;
         private string _displacementFWDLayer;
         private string _displacementBWDLayer;
         private string _predictionLayer = "heatmap_predictions";
+
+        private Keypoint[][] _poses;
+
         /*
          * MonoBehaviour
          */
@@ -139,6 +142,9 @@ namespace Assets.Scripts.Components
             _engine.worker.Execute(_input);
             // Release GPU resources allocated for the Tensor
             _input.Dispose();
+
+            // Decode the keypoint coordinates from the model output
+            ProcessOutput(_engine.worker);
         }
  
         /*
@@ -239,6 +245,42 @@ namespace Assets.Scripts.Components
             Graphics.Blit(result, image);
 
             RenderTexture.ReleaseTemporary(result);
+        }
+
+        /// <summary>
+        /// Obtains the model output and either decodes single or mutlple poses
+        /// </summary>
+        /// <param name="engine"></param>
+        private void ProcessOutput(IWorker engine)
+        {
+            // Get the model output
+            Tensor heatmaps = engine.PeekOutput(_predictionLayer);
+            Tensor offsets = engine.PeekOutput(_offsetsLayer);
+            Tensor displacementFWD = engine.PeekOutput(_displacementFWDLayer);
+            Tensor displacementBWD = engine.PeekOutput(_displacementBWDLayer);
+
+            // Calculate the stride used to scale down the inputImage
+            int stride = (imageDims.y - 1) / (heatmaps.shape.height - 1);
+            stride -= stride % 8;
+
+            if (estimationType == EstimationType.SinglePose)
+            {
+                // Initialize the array of Keypoint arrays
+                _poses = new Keypoint[1][];
+
+                // Determine the key point locations
+                _poses[0] = Utils.Utils.DecodeSinglePose(heatmaps, offsets, stride);
+            }
+            else
+            {
+                
+            }
+            
+            // Release the resources allocated for the output Tensors
+            heatmaps.Dispose();
+            offsets.Dispose();
+            displacementFWD.Dispose();
+            displacementBWD.Dispose();
         }
     }
 }

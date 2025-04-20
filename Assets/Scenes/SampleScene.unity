@@ -162,6 +162,7 @@ MonoBehaviour:
   modelType: 1
   useGPU: 1
   imageDims: {x: 256, y: 256}
+  estimationType: 0
   mobileNetModelAsset: {fileID: 5022602860645237092, guid: 7565a5f00b1dd4924bb085a7192ded11, type: 3}
   resnetModelAsset: {fileID: 5022602860645237092, guid: dae82f140f037487384a6cab2c391dbe, type: 3}
   workerType: 32768
