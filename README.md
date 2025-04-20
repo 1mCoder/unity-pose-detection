@@ -1,5 +1,5 @@
 # Realtime pose detection in Unity
-This is an educational project that demonstrates human pose estimation in Unity game engine using Barracuda library. Two models were used for realtime pose estimation: **MobileNet** and **ResNet50**. This project mainly follows these <ref link=https://christianjmills.com/posts/barracuda-posenet-tutorial-v2/part-1/>tutorial series</ref>.
+This is an educational project that demonstrates human pose estimation in Unity game engine using Barracuda library. Two models were used for realtime pose estimation: **MobileNet** and **ResNet50**. This project mainly follows these [tutorial series](https://christianjmills.com/posts/barracuda-posenet-tutorial-v2/part-1/)</ref>.
 
 ### Technical Overview
 Two sources of input are supported: webcamera and a video file. Briefly, there are six key steps to achieve the end result:
